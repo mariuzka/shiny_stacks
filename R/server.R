@@ -1,6 +1,7 @@
 library(shiny)
 library(ggplot2)
 
+# run the simulation by pressing the button
 run_simulation_on_click <- function(
   initial_population,
   input_n_agents,
@@ -34,7 +35,7 @@ run_simulation_on_click <- function(
   return(df)
 }
 
-
+# bar plot showing the distribution of vehicles at the start, in the middle and at the end
 selected_barplots <- function(df, upper_y_lim){
   
   # select time steps
@@ -44,24 +45,35 @@ selected_barplots <- function(df, upper_y_lim){
   
   # filter data
   df <- df[df$tick %in% selected_ticks, ]
-  
+  df$time_points <- factor(df$tick, levels=c(0, half_time_tick, last_tick), labels=c("Start", "Middle", "End"))
+  print(df$time_points)
   # calculate mean line length per rank and time step
   means <- aggregate(
     df$n_carts,
-    by = list("hour" = df$hour, "rank" = df$rank),
+    by = list("time_points" = df$time_points, "rank" = df$rank),
     FUN = mean
   )
-  names(means) <- c("hour", "rank", "n_carts")
+  names(means) <- c("time_points", "rank", "n_carts")
   
   # create bar plot
   p <- ggplot(data = means, aes(x = rank, y = n_carts)) +
     geom_col() +
-    facet_wrap(~hour) +
+    facet_wrap(~time_points) +
     geom_hline(yintercept = df[1, "n_carts"], linetype = "dashed") +
     geom_hline(yintercept = df[1, "n_max_carts"]) +
     ylim(0, upper_y_lim + 5) +
-    theme(legend.position = "none", plot.title = element_text(size=22)) +
-    ggtitle("average line length at certain time steps")
+    theme(
+      legend.position = "none", 
+      plot.title = element_text(size=18, hjust = 0.5),
+      plot.subtitle = element_text(hjust = 0.5),
+      axis.text.x = element_blank()) +
+    labs(
+      title = "Plot I",
+      subtitle = "Average distribution of vehicles at specific time steps"
+    ) +
+    xlab("") +
+    ylab("Average number of vehicles")
+    
   return(p)
 }
 
@@ -77,45 +89,25 @@ agg_lines <- function(df, upper_y_lim){
   names(df_mean_len) <- c("rank", "hour", "mean_n_carts")
   
   p <- ggplot() +
-    geom_line(data = df_mean_len, aes(x = hour, y = mean_n_carts, group = rank, color = rank)) +
+    geom_line(data = df_mean_len, aes(x = hour, y = mean_n_carts, group = rank, color = "black")) +
     #geom_smooth(data = df, aes(x = hour, y = n_carts, group = rank, color = rank)) +
     geom_hline(yintercept = df[1, "n_carts"], linetype = "dashed") +
     geom_hline(yintercept = df[1, "n_max_carts"]) +
     ylim(0, upper_y_lim + 5) +
-    theme(legend.position = "bottom") +
+    theme(legend.position = "none") +
     labs(
-      title = "Average line length",
-      subtitle = "Average number of carts per line rank during simulation",
-      caption = "The shown lines do not correspond to a single line of carts, but to the line length of a certain ran"
+      title = "Plot II",
+      subtitle = "Average distribution of vehicles at each time step",
+      legend.position = "none"
     ) +
     theme(
       plot.title = element_text(size=18, hjust = 0.5),
       plot.subtitle = element_text(hjust = 0.5)
-    )
+    ) +
+    ylab("Average number of vehicles")
   return(p)
 }
 
-
-scatter1 <- function(df, upper_y_lim){
-  p <- ggplot(data = df, aes(x = hour, y = n_carts)) +
-    geom_jitter(alpha = 0.2) +
-    ylim(0, upper_y_lim)
-  return(p)
-}
-
-gini_plot <- function(df){
-  
-  df_gini <- aggregate(
-    df$n_carts,
-    by = list("rep" = df$rep, "hour" = df$hour),
-    FUN = DescTools::Gini
-  )
-  names(df_gini) <- c("rep", "hour", "gini")
-  p <- ggplot(data = df_gini,aes(x=hour, y = gini)) +
-    geom_smooth() +
-    ylim(0,1)
-  return(p)
-}
 
 example_runs <- function(df, upper_y_lim){
   df <- df[df$rep %in% c(1,2,3,4),]
@@ -126,16 +118,17 @@ example_runs <- function(df, upper_y_lim){
     facet_wrap(~rep) +
     ylim(0, upper_y_lim + 5) +
     geom_hline(yintercept = df[1, "n_carts"], linetype = "dashed") +
-    geom_hline(yintercept = df[1, "n_max_carts"], linetype = "dashed") +
+    geom_hline(yintercept = df[1, "n_max_carts"]) +
     theme(legend.position = "none") +
     labs(
-      title = "Raw example runs",
-      subtitle = "Number of carts per line during simulation"
+      title = "Plot III",
+      subtitle = "Distribution of vehicles at each time step from randomly selected replications"
     ) +
     theme(
       plot.title = element_text(size=18, hjust = 0.5),
       plot.subtitle = element_text(hjust = 0.5)
-    )
+    ) +
+    ylab("Number of vehicles")
   return(p)
 }
 
@@ -166,108 +159,6 @@ plot_dev <- function(df1, df2){
   
   return(p)
     
-}
-
-
-
-
-plot_both_diff_to_start <- function(df1, df2){
-  
-  df1["diff_to_start_n"] <- abs(df1$n_carts - df1[1, "n_carts"])
-  df1["scenario"] <- "A"
-  
-  df2["diff_to_start_n"] <- abs(df2$n_carts - df2[1, "n_carts"])
-  df2["scenario"] <- "B"
-  
-  df <- rbind(df1, df2)
-  
-  df_diff <- aggregate(
-    df$diff_to_start_n,
-    by = list("scenario" = df$scenario, "rep" = df$rep, "hour" = df$hour),
-    FUN = sum,
-    na.rm = TRUE
-  )
-  names(df_diff) <- c("scenario", "rep", "hour", "sum_abs_diff")
-  
-  df_mean_diff <- aggregate(
-    df_diff$sum_abs_diff,
-    by = list("scenario" = df_diff$scenario, "hour" = df_diff$hour),
-    FUN = mean
-  )
-  names(df_mean_diff) <- c("scenario", "hour", "mean_sum_abs_diff")
-  
-  p <- ggplot() +
-    geom_line(
-      data = df_mean_diff, 
-      mapping = aes(x = hour, y = mean_sum_abs_diff, color = scenario),
-      ) +
-    theme(legend.position = "bottom") +
-    labs(
-      title = "Total deviation of line length",
-      subtitle = "",
-      caption = ""
-    ) +
-    theme(
-      plot.title = element_text(size=18, hjust = 0.5),
-      plot.subtitle = element_text(hjust = 0.5)
-    )
-  return(p)
-}
-
-
-geom_diff_to_start <- function(df, label, color){
-  
-  df["diff_to_start_n"] <- abs(df$n_carts - df[1, "n_carts"])
-  
-  df_diff <- aggregate(
-    df$diff_to_start_n,
-    by = list("rep" = df$rep, "hour" = df$hour),
-    FUN = sum,
-    na.rm = TRUE
-  )
-  names(df_diff) <- c("rep", "hour", "sum_abs_diff")
-  
-  df_mean_diff <- aggregate(
-    df_diff$sum_abs_diff,
-    by = list("hour" = df_diff$hour),
-    FUN = mean
-  )
-  names(df_mean_diff) <- c("hour", "mean_sum_abs_diff")
-  
-  g <- geom_line(
-    data = df_mean_diff, 
-    mapping = aes(x = hour, y = mean_sum_abs_diff),
-    color = color,
-    label = label
-    )
-  return(g)
-}
-
-
-
-plot_diff_to_start <- function(df){
-  
-  df["diff_to_start_n"] <- abs(df$n_carts - df[1, "n_carts"])
-  
-  df_diff <- aggregate(
-    df$diff_to_start_n,
-    by = list("rep" = df$rep, "hour" = df$hour),
-    FUN = sum,
-    na.rm = TRUE
-  )
-  names(df_diff) <- c("rep", "hour", "sum_abs_diff")
-  
-  df_mean_diff <- aggregate(
-    df_diff$sum_abs_diff,
-    by = list("hour" = df_diff$hour),
-    FUN = mean
-  )
-  names(df_mean_diff) <- c("hour", "mean_sum_abs_diff")
-  
-  p <- ggplot() +
-    geom_line(data = df_mean_diff, mapping = aes(x = hour, y = mean_sum_abs_diff))
-    #geom_smooth(data = df_diff, mapping = aes(x = hour, y = sum_abs_diff))
-  return(p)
 }
 
 
@@ -349,7 +240,6 @@ info_table_modes <- function(population_part1_list, show_gm_freqs, show_rm_freqs
 
 
 
-
 plot_max_and_realized_dev <- function(
   df_max_devs,
   df
@@ -375,71 +265,6 @@ plot_max_and_realized_dev <- function(
   return(p)
   
 }
-
-plot_average_line_length <- function(df, upper_y_lim){
-  df_mean <- aggregate(
-    df$n_carts,
-    by = list("hour" = df$hour),
-    FUN = mean
-  )
-  names(df_mean) <- c("hour", "average_line_length")
-  p <- ggplot(data = df_mean, mapping = aes(x = hour, y = average_line_length))+
-    geom_point() +
-    ylim(0, upper_y_lim + 5)+
-    geom_hline(yintercept = mean(df_mean$average_line_length), color = "red")
-  
-  return(p)
-}
-
-
-plot_cart_use <- function(df, upper_y_lim){
-  total_carts <- df[1, "n_lines"] * df[1, "n_carts"]
-  
-  df <- aggregate(
-    df$n_carts,
-    by = list("rep" = df$rep, "hour" = df$hour),
-    FUN = sum,
-    na.rm = TRUE
-  )
-  
-  names(df) <- c("rep", "hour", "sum_carts")
-  
-  df <- aggregate(
-    df$sum_carts,
-    by = list("hour" = df$hour),
-    FUN = mean,
-  )
-  
-  names(df) <- c("hour", "mean_carts")
-  
-  df$cart_use <- total_carts - df$mean_carts
-  
-  p <- ggplot(data = df, mapping = aes(x = hour, y = cart_use))+
-    geom_point() +
-    ylim(0, upper_y_lim + 5) +
-    geom_hline(yintercept = mean(df$cart_use), color = "red")
-  
-  return(p)
-}
-
-plot_average_utilization <- function(df){
-  n_carts <- df[1, "n_carts"]
-  df <- aggregate(
-    df$n_carts,
-    by = list("hour" = df$hour),
-    FUN = mean
-  )
-  names(df) <- c("hour", "average_line_length")
-  df$average_utilization <- (n_carts - df$average_line_length) / n_carts
-  
-  p <- ggplot(data = df, mapping = aes(x = hour, y = average_utilization))+
-    geom_point() +
-    ylim(0, 1) +
-    geom_hline(yintercept = mean(df$average_utilization), color = "red")
-  
-  return(p)
-}
-
 
 
 desc_agents_and_carts <- function(n_agents, n_hours, duration, n_lines, n_carts){

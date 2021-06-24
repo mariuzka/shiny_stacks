@@ -166,8 +166,6 @@ server <- function(input, output, session){
       max(input$n_lines_1 * input$n_max_carts_1, input$n_lines_2 * input$n_max_carts_2)
     ))
     
-    
-    
     # observe behavior-mode-percentages 1
     gm_1 <- reactive(c(input$gm_min_1, input$gm_max_1, input$gm_random_1))
     rm_1 <- reactive(c(input$rm_min_1, input$rm_max_1, input$rm_random_1))

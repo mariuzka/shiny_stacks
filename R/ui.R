@@ -164,7 +164,7 @@ ui_func <- function(ids){
              wellPanel(
                fluidRow(
                  column(7,
-                        sliderInput(ids$reps, label = "sim. repettitions.", min = 1, max = 50, value = 10),
+                        sliderInput(ids$reps, label = "Replications", min = 1, max = 50, value = 10),
                  ),
                  column(1),
                  column(4,
