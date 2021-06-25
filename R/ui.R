@@ -45,9 +45,12 @@ get_ids <- function(i){
     "plot_average_line_length" = "plot_average_line_length",
     "plot_cart_use" = "plot_cart_use",
     "plot_average_utilization" = "plot_average_utilization",
-    "plot_dev_in_distribution" = "plot_dev_in_distribution"
+    "plot_dev_in_distribution" = "plot_dev_in_distribution",
     
-    
+    "absolute_deviation" = "absolute_deviation",
+    "max_deviation" = "max_deviation",
+    "rel_deviation" = "rel_deviation",
+    "rel_system_deviation" = "rel_system_deviation"
   )
   
   for (name in names(ids)){
@@ -61,7 +64,6 @@ ui_func <- function(ids){
   s2 <- 3
   s3 <- 2
   column(12,
-    #h3("Agents, carts and time"),
     wellPanel(
       fluidRow(
         
@@ -80,10 +82,6 @@ ui_func <- function(ids){
              strong("Fleet size"),
              br(),
              textOutput(ids$total_carts)),
-      #column(s2,
-      #       strong("Avg. line length"),
-      #       br(),
-      #       textOutput(ids$average_line_length)),
       column(s2,
              strong("Customers at a time"),
              br(),
@@ -92,8 +90,6 @@ ui_func <- function(ids){
              strong("Fleet utilization rate"),
              br(),
              textOutput(ids$average_utilization))
-      
-    
     ),
 
     hr(),
@@ -177,17 +173,34 @@ ui_func <- function(ids){
         
       column(2)
       ),
+    hr(),
+    h3("Results", align = "center"),
+    hr(),
+    fluidRow(
+      
+      column(s2,
+             strong("Realized deviation"),
+             br(),
+             textOutput(ids$absolute_deviation)),
+      column(s2,
+             strong("Possible deviation"),
+             br(),
+             textOutput(ids$max_deviation)),
+      column(s2,
+             strong("Real. dev. / poss. dev."),
+             br(),
+             textOutput(ids$rel_deviation)),
+      column(s2,
+             strong("Real. dev. / system capacity"),
+             br(),
+             textOutput(ids$rel_system_deviation)),
+      ),
+    hr(),
     plotOutput(ids$selected_barplots),
     hr(),
     plotOutput(ids$agg_line),
     hr(),
     plotOutput(ids$example_runs),
     hr(),
-    #plotOutput(ids$plot_average_line_length),
-    #hr(),
-    #plotOutput(ids$plot_cart_use),
-    #hr(),
-    #plotOutput(ids$plot_average_utilization),
-    #hr(),
     plotOutput(ids$plot_dev_in_distribution)
     )}

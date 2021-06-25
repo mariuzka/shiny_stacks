@@ -140,13 +140,13 @@ multi_sim <- function(
   
   
   
-  #progress <- Progress$new(max = reps)
-  #on.exit(progress$close())
-  #progress$set(message = "running the simulation...")
+  progress <- Progress$new(max = reps)
+  on.exit(progress$close())
+  progress$set(message = "running the simulation...")
   
   
   for (rep in 1:reps){
-    #progress$inc(1)
+    progress$inc(1)
 
     population <- create_population_part2(
       population_part1,

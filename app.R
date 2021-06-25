@@ -26,8 +26,9 @@ At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergr
 ui <- fluidPage(theme = shinytheme("spacelab"),
     shinyFeedback::useShinyFeedback(),
     titlePanel(
-      h1("A simulator of imbalance generation in vehicle sharing systems", align = "center"),
+      h1("Show me the mess", align = "center"),
       ),
+    h3("An interactive simulator of imbalance generation in non-floating one-way (vehicle) sharing systems.", align = "center"),
     br(),
     #HTML('<center><img src="carts02_cut.jpg"></center>'),
     #hr(),
@@ -126,27 +127,9 @@ server <- function(input, output, session){
     output$agg_line_1 <- renderPlot(agg_lines(df_1(), upper_y_lim()))
     output$agg_line_2 <- renderPlot(agg_lines(df_2(), upper_y_lim()))
     
-    # scatter plot
-    output$scatter1_1 <- renderPlot(scatter1(df_1(), upper_y_lim()))
-    output$scatter1_2 <- renderPlot(scatter1(df_2(), upper_y_lim()))
-    
     # line plot of example runs
     output$example_runs_1 <- renderPlot(example_runs(df_1(), upper_y_lim()))
     output$example_runs_2 <- renderPlot(example_runs(df_2(), upper_y_lim()))
-    
-    # plot average line length 
-    output$plot_average_line_length_1 <- renderPlot(plot_average_line_length(df_1(), max(input$n_carts_1, input$n_carts_2)))
-    output$plot_average_line_length_2 <- renderPlot(plot_average_line_length(df_2(), max(input$n_carts_1, input$n_carts_2)))
-    
-    # plot average carts in use
-    output$plot_cart_use_1 <- renderPlot(plot_cart_use(df_1(), 
-      max(input$n_carts_1 * input$n_lines_1, input$n_carts_2 * input$n_lines_2)))
-    output$plot_cart_use_2 <- renderPlot(plot_cart_use(df_2(), 
-      max(input$n_carts_1 * input$n_lines_1, input$n_carts_2 * input$n_lines_2)))
-    
-    # plot average utilization
-    output$plot_average_utilization_1 <- renderPlot(plot_average_utilization(df_1()))
-    output$plot_average_utilization_2 <- renderPlot(plot_average_utilization(df_2()))
     
     # plot_dev_in_distribution
     output$plot_dev_in_distribution_1 <- renderPlot(plot_dev_in_distribution(
@@ -199,11 +182,7 @@ server <- function(input, output, session){
     output$average_line_length_2 <- renderText(desc_agents_and_carts_2()[["average_line_length"]])
     
     # info table about mode freqs
-    df_mode_freqs_1 <- reactive(info_table_modes(
-      population_1(),
-      sum(gm_1()) == 100,
-      sum(rm_1()) == 100
-      ))
+    df_mode_freqs_1 <- reactive(info_table_modes(population_1(), sum(gm_1()) == 100, sum(rm_1()) == 100))
     output$n_gm_min_1 <- renderText(df_mode_freqs_1()[1, "get min"])
     output$n_gm_max_1 <- renderText(df_mode_freqs_1()[1, "get max"])
     output$n_gm_random_1 <- renderText(df_mode_freqs_1()[1, "get ran"])
@@ -213,11 +192,7 @@ server <- function(input, output, session){
     output$n_rm_random_1 <- renderText(df_mode_freqs_1()[1, "ret ran"])
     output$rm_perc_sum_1 <- renderText(sum(input$rm_min_1, input$rm_max_1, input$rm_random_1))
     
-    df_mode_freqs_2 <- reactive(info_table_modes(
-      population_2(),
-      sum(gm_2()) == 100,
-      sum(rm_2()) == 100
-      ))
+    df_mode_freqs_2 <- reactive(info_table_modes(population_2(), sum(gm_2()) == 100, sum(rm_2()) == 100))
     output$n_gm_min_2 <- renderText(df_mode_freqs_2()[1, "get min"])
     output$n_gm_max_2 <- renderText(df_mode_freqs_2()[1, "get max"])
     output$n_gm_random_2 <- renderText(df_mode_freqs_2()[1, "get ran"])
@@ -226,6 +201,20 @@ server <- function(input, output, session){
     output$n_rm_max_2 <- renderText(df_mode_freqs_2()[1, "ret max"])
     output$n_rm_random_2 <- renderText(df_mode_freqs_2()[1, "ret ran"])
     output$rm_perc_sum_2 <- renderText(sum(input$rm_min_2, input$rm_max_2, input$rm_random_2))
+    
+    
+    # info table results
+    info_table_results_1 <- reactive(get_info_table_results(df_1()))
+    output$absolute_deviation_1 <- renderText(info_table_results_1()[1, "mean_abs_dev"])
+    output$max_deviation_1 <- renderText(info_table_results_1()[1, "max_abs_dev"])
+    output$rel_deviation_1 <- renderText(info_table_results_1()[1, "rel_dev"])
+    output$rel_system_deviation_1 <- renderText(info_table_results_1()[1, "rel_system_dev"])
+    
+    info_table_results_2 <- reactive(get_info_table_results(df_2()))
+    output$absolute_deviation_2 <- renderText(info_table_results_2()[1, "mean_abs_dev"])
+    output$max_deviation_2 <- renderText(info_table_results_2()[1, "max_abs_dev"])
+    output$rel_deviation_2 <- renderText(info_table_results_2()[1, "rel_dev"])
+    output$rel_system_deviation_2 <- renderText(info_table_results_2()[1, "rel_system_dev"])
 }
 
 

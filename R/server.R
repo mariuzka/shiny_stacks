@@ -89,7 +89,7 @@ agg_lines <- function(df, upper_y_lim){
   names(df_mean_len) <- c("rank", "hour", "mean_n_carts")
   
   p <- ggplot() +
-    geom_line(data = df_mean_len, aes(x = hour, y = mean_n_carts, group = rank, color = "black")) +
+    geom_line(data = df_mean_len, aes(x = hour, y = mean_n_carts, group = rank), color = "steelblue2") +
     #geom_smooth(data = df, aes(x = hour, y = n_carts, group = rank, color = rank)) +
     geom_hline(yintercept = df[1, "n_carts"], linetype = "dashed") +
     geom_hline(yintercept = df[1, "n_max_carts"]) +
@@ -131,36 +131,6 @@ example_runs <- function(df, upper_y_lim){
     ylab("Number of vehicles")
   return(p)
 }
-
-
-plot_dev <- function(df1, df2){
-  
-  df1["dev"] <- abs(df1$n_carts - df1[1, "n_carts"]) / 2
-  df1["scenario"] <- "A"
-  
-  df2["dev"] <- abs(df2$n_carts - df2[1, "n_carts"]) / 2
-  df2["scenario"] <- "B"
-
-  df <- rbind(df1, df2)
-  
-  df <- df[df$tick == max(df$tick), ]
-  
-  df_dev <- aggregate(
-    df$dev,
-    by = list("scenario" = df$scenario, "rep" = df$rep, "hour" = df$hour),
-    FUN = sum,
-    na.rm = TRUE
-  )
-  names(df_dev) <- c("scenario", "rep", "hour", "sum_dev")
-  
-  p <- ggplot() +
-    geom_jitter(data = df_dev, mapping = aes(x = scenario, y = sum_dev)) +
-    geom_point(data = df, mapping = aes(x = scenario, y = max_dev), color = "red")
-  
-  return(p)
-    
-}
-
 
 perc_observer <- function(focal_controller, controller_vec){
   observeEvent(
@@ -239,34 +209,6 @@ info_table_modes <- function(population_part1_list, show_gm_freqs, show_rm_freqs
 }
 
 
-
-plot_max_and_realized_dev <- function(
-  df_max_devs,
-  df
-) {
-  
-  n_carts <- df[1, "n_carts"]
-  
-  df["dev"] <- abs(df$n_carts - df[1, "n_carts"]) / 2
-  df <- df[df$tick == max(df$tick), ]
-  df_dev <- aggregate(
-    df$dev,
-    by = list("scenario" = df$scenario, "rep" = df$rep, "hour" = df$hour),
-    FUN = sum,
-    na.rm = TRUE
-  )
-  names(df_dev) <- c("scenario", "rep", "hour", "sum_dev")
-  
-  p <- ggplot() +
-    geom_point(data = df_dev, mapping = aes(x = scenario, y = sum_dev)) +
-    geom_point(data = df, mapping = aes(x = scenario, y = max_dev), color = "red") +
-    geom_point(data = df_max_devs, mapping = aes(x =))
-  
-  return(p)
-  
-}
-
-
 desc_agents_and_carts <- function(n_agents, n_hours, duration, n_lines, n_carts){
   total_carts <- n_lines * n_carts
   agents_at_a_time <- (n_agents/n_hours)*duration
@@ -283,6 +225,43 @@ desc_agents_and_carts <- function(n_agents, n_hours, duration, n_lines, n_carts)
 }
 
 
+
+get_info_table_results <- function(df){
+  
+  n_carts <- df[1, "n_carts"]
+  n_max_carts <- df[1, "n_max_carts"]
+  n_lines = df[1, "n_lines"]
+  
+  max_abs_dev <- calculate_max_dev(n_lines, n_carts, n_max_carts)
+  
+  df <- df[df$tick == max(df$tick), ]
+  df["abs_dev"] <- abs(df$n_carts - n_carts) / 2
+  df_dev <- aggregate(
+    df$abs_dev,
+    by = list("rep" = df$rep),
+    FUN = sum,
+    na.rm = TRUE
+  )
+  names(df_dev) <- c("rep", "sum_abs_dev")
+  
+  # Absolute Abweichung vom Sollwert
+  mean_abs_dev <- mean(df_dev$sum_abs_dev)
+  
+  # Verhältnis von absoluter Abweichung vom Sollwert zur theoretisch möglichen Abweichung
+  rel_dev <- mean_abs_dev / max_abs_dev
+  
+  # Absolute Abweichung vom Sollwert im Verhältnis zur Systemgröße
+  rel_system_dev <- mean_abs_dev / (n_max_carts * n_lines)
+  
+  df <- data.frame(
+    mean_abs_dev,
+    max_abs_dev,
+    rel_dev,
+    rel_system_dev
+  )
+  return(df)
+  
+}
 
 plot_dev_in_distribution <- function(
   df,
@@ -314,7 +293,7 @@ plot_dev_in_distribution <- function(
   df_max_dev <- create_df(
     elements_per_stack_range,
     1,
-    c(0, stacks + 5),
+    c(stacks - 2, stacks + 2),
     1,
     max_elements_per_stack
   )
@@ -323,19 +302,30 @@ plot_dev_in_distribution <- function(
     geom_line(
       data = df_max_dev[df_max_dev$stacks == stacks, ],
       mapping = aes(x = elements_per_stack, y = max_deviation),
-      color = "black",
-      lwd = 1
+      color = "grey",
+      lwd = 3
     ) +
     geom_line(
-      data = df_max_dev[df_max_dev$stacks != stacks, ],
-      mapping = aes(x = elements_per_stack, y = max_deviation, group = stacks),
-      color = "grey",
-      lwd = 0.5
+      data = df_max_dev,
+      mapping = aes(x = elements_per_stack, y = max_deviation, group = stacks, color = as.factor(stacks)),
+      lwd = 0.5,
+      linetype="dashed"
     ) +
-    geom_point(mapping = aes(x = n_carts, y = max_dev), color = "red", size = 2) +
-    geom_point(mapping = aes(x = n_carts, y = mean_dev), color = "blue", shape=8, size = 2)+
+    #geom_point(mapping = aes(x = n_carts, y = max_dev), color = "red", size = 2) +
+    geom_point(mapping = aes(x = n_carts, y = mean_dev), color = "black", size = 3)+
     xlim(0, upper_x_lim) +
-    ylim(0, upper_y_lim/2)
+    ylim(0, upper_y_lim/2.5) +
+    labs(
+      x = "Number of vehicles per line",
+      y = "Absolute deviation",
+      color = "Number of lines",
+      title = "Plot IV",
+      subtitle = "The realized deviation in context of the relationship of the number of vehicles and the theoretically possible deviation"
+    ) +
+    theme(
+      plot.title = element_text(size=18, hjust = 0.5),
+      plot.subtitle = element_text(hjust = 0.5)
+    )
     
     
   return(p)
